@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using CurrencyAPI.Models;
+using CurrencyAPI.Services;
 
 namespace CurrencyAPI.Controllers
 {
@@ -11,39 +12,45 @@ namespace CurrencyAPI.Controllers
     [ApiController]
     public class CurrencyController : ControllerBase
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ApiSettings _apiSettings;
+        private readonly ICurrencyService _currencyService;
 
-        public CurrencyController(IHttpClientFactory httpClientFactory, IOptions<ApiSettings> apiSettings)
+        public CurrencyController(ICurrencyService currencyService)
         {
-            _httpClientFactory = httpClientFactory;
-            _apiSettings = apiSettings.Value;
+            _currencyService = currencyService;
         }
 
         [HttpGet("rate/{targetCurrency}")]
         public async Task<IActionResult> GetRate(string targetCurrency)
         {
-            targetCurrency = targetCurrency.ToUpper();
+            var (success, rate, error) = await _currencyService.GetRateAsync(targetCurrency);
 
-            var client = _httpClientFactory.CreateClient();
-          
-            var response = await client.GetAsync($"https://openexchangerates.org/api/latest.json?app_id={_apiSettings.CurrencyApiKey}");
+            if (!success)
+                return NotFound(error);
 
-            response.EnsureSuccessStatusCode();
+            return Ok(new { Currency = targetCurrency.ToUpper(), Rate = rate });
 
-            var result = await response.Content.ReadAsStringAsync();
+        }
 
-            var rateResponse = JsonConvert.DeserializeObject<RateResponse>(result);
+        [HttpPost("assign")]
+        public async Task<IActionResult> AssignCurrency([FromBody] AssignCurrencyRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            if (rateResponse == null || !rateResponse.Rates.ContainsKey(targetCurrency))
-            {
-                return NotFound("Currency not found.");
-            }
+            await _currencyService.AssignCurrencyAsync(request.Currency, request.Value);
 
-            var targetRate = rateResponse.Rates[targetCurrency];
+            return Ok();
+        }
 
-            return Ok(new { Currency = targetCurrency, Rate = targetRate });
+        [HttpGet("custom/{currency}")]
+        public async Task<IActionResult> GetCustomCurrency(string currency)
+        {
+            var (found, value) = await _currencyService.GetCustomCurrencyAsync(currency);
 
+            if (!found)
+                return NotFound(new { Error = $"Currency '{currency.ToUpper()}' not found." });
+
+            return Ok(new { Currency = currency.ToUpper(), Value = value });
         }
     }
 
