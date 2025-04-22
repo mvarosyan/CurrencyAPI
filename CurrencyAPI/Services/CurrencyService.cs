@@ -1,4 +1,5 @@
 ﻿using CurrencyAPI.Configuration;
+using CurrencyAPI.Data;
 using CurrencyAPI.Models;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -9,16 +10,20 @@ namespace CurrencyAPI.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ApiSettings _apiSettings;
-        private static readonly Dictionary<string, decimal> _customCurrencyValues = new();
+        private readonly ICustomCurrencyRepository _customCurrencyRepository;
 
-        public CurrencyService(IHttpClientFactory httpClientFactory, IOptions<ApiSettings> apiSettings)
+        public CurrencyService(IHttpClientFactory httpClientFactory, IOptions<ApiSettings> apiSettings, ICustomCurrencyRepository customCurrencyRepository)
         {
             _httpClientFactory = httpClientFactory;
             _apiSettings = apiSettings.Value;
+            _customCurrencyRepository = customCurrencyRepository;
         }
 
-        public async Task<(bool Success, decimal Rate, string ErrorMessage)> GetRateAsync(string targetCurrency)
+        public async Task<CurrencyRateResult> GetRateAsync(string targetCurrency, CancellationToken cancellationToken)
         {
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             targetCurrency = targetCurrency.ToUpper();
 
             var client = _httpClientFactory.CreateClient();
@@ -26,35 +31,45 @@ namespace CurrencyAPI.Services
             var response = await client.GetAsync($"https://openexchangerates.org/api/latest.json?app_id={_apiSettings.CurrencyApiKey}");
 
             if (!response.IsSuccessStatusCode)
-                return (false, 0, "Failed to retrieve data.");
+            {
+                return new CurrencyRateResult
+                {
+                    Success = false,
+                    Rate = 0,
+                    ErrorMessage = "Failed to retrieve data."
+                };
+            }
 
             var result = await response.Content.ReadAsStringAsync();
 
             var rateResponse = JsonConvert.DeserializeObject<RateResponse>(result);
 
             if (rateResponse == null || !rateResponse.Rates.ContainsKey(targetCurrency))
-                return (false, 0, "Currency not found.");
-
-
-            return (true, rateResponse.Rates[targetCurrency], null);
-        }
-
-        public Task AssignCurrencyAsync(string currency, decimal value)
-        {
-            _customCurrencyValues[currency.ToUpper()] = value;
-            return Task.CompletedTask;
-        }
-
-        public Task<(bool Found, decimal Value)> GetCustomCurrencyAsync(string currency)
-        {
-            currency = currency.ToUpper();
-
-            if (_customCurrencyValues.TryGetValue(currency, out var value))
             {
-                return Task.FromResult((true, value));
+                return new CurrencyRateResult
+                {
+                    Success = false,
+                    Rate = 0,
+                    ErrorMessage = "Currency not found."
+                };
             }
 
-            return Task.FromResult((false, 0m));
+            return new CurrencyRateResult
+            {
+                Success = true,
+                Rate = rateResponse.Rates[targetCurrency],
+                ErrorMessage = null
+            };
+        }
+
+        public Task AssignCurrencyAsync(string currency, decimal value, CancellationToken cancellationToken)
+        {
+            return _customCurrencyRepository.AssignAsync(currency, value, cancellationToken);
+        }
+
+        public Task<CustomCurrencyResult> GetCustomCurrencyAsync(string currency, CancellationToken cancellationToken)
+        {
+            return _customCurrencyRepository.GetAsync(currency, cancellationToken);
         }
     }
 }
