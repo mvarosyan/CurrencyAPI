@@ -20,37 +20,37 @@ namespace CurrencyAPI.Controllers
         }
 
         [HttpGet("rate/{targetCurrency}")]
-        public async Task<IActionResult> GetRate(string targetCurrency)
+        public async Task<IActionResult> GetRate(string targetCurrency, CancellationToken cancellationToken)
         {
-            var (success, rate, error) = await _currencyService.GetRateAsync(targetCurrency);
+            var result = await _currencyService.GetRateAsync(targetCurrency, cancellationToken);
 
-            if (!success)
-                return NotFound(error);
+            if (!result.Success)
+                return NotFound(result.ErrorMessage);
 
-            return Ok(new { Currency = targetCurrency.ToUpper(), Rate = rate });
+            return Ok(new { Currency = targetCurrency.ToUpper(), Rate = result.Rate });
 
         }
 
         [HttpPost("assign")]
-        public async Task<IActionResult> AssignCurrency([FromBody] AssignCurrencyRequest request)
+        public async Task<IActionResult> AssignCurrency([FromBody] AssignCurrencyRequest request, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            await _currencyService.AssignCurrencyAsync(request.Currency, request.Value);
+            await _currencyService.AssignCurrencyAsync(request.Currency, request.Value, cancellationToken);
 
             return Ok();
         }
 
         [HttpGet("custom/{currency}")]
-        public async Task<IActionResult> GetCustomCurrency(string currency)
+        public async Task<IActionResult> GetCustomCurrency(string currency, CancellationToken cancellationToken)
         {
-            var (found, value) = await _currencyService.GetCustomCurrencyAsync(currency);
+            var result = await _currencyService.GetCustomCurrencyAsync(currency, cancellationToken);
 
-            if (!found)
+            if (!result.Found)
                 return NotFound(new { Error = $"Currency '{currency.ToUpper()}' not found." });
 
-            return Ok(new { Currency = currency.ToUpper(), Value = value });
+            return Ok(new { Currency = currency.ToUpper(), Value = result.Value });
         }
     }
 

@@ -1,11 +1,13 @@
-﻿namespace CurrencyAPI.Services
+﻿using CurrencyAPI.Models;
+
+namespace CurrencyAPI.Services
 {
     public interface ICurrencyService
     {
-        Task<(bool Success, decimal Rate, string ErrorMessage)> GetRateAsync(string targetCurrency);
+        Task<CurrencyRateResult> GetRateAsync(string targetCurrency, CancellationToken cancellationToken);
 
-        Task AssignCurrencyAsync(string currency, decimal value);
+        Task AssignCurrencyAsync(string currency, decimal value, CancellationToken cancellationToken);
 
-        Task<(bool Found, decimal Value)> GetCustomCurrencyAsync(string currency);
+        Task<CustomCurrencyResult> GetCustomCurrencyAsync(string currency, CancellationToken cancellationToken);
     }
 }
