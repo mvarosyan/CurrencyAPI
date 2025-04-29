@@ -4,10 +4,10 @@ namespace CurrencyAPI.Services
 {
     public interface ICurrencyService
     {
-        Task<CurrencyRateResult> GetRateAsync(string targetCurrency, CancellationToken cancellationToken);
+        Task<ServiceResult> FetchAndSaveRatesAsync(CancellationToken cancellationToken = default);
 
         Task AssignCurrencyAsync(string currency, decimal value, CancellationToken cancellationToken);
 
-        Task<CustomCurrencyResult> GetCustomCurrencyAsync(string currency, CancellationToken cancellationToken);
+        Task<CustomCurrencyResult> GetCurrencyAsync(string currency, CancellationToken cancellationToken);
     }
 }
