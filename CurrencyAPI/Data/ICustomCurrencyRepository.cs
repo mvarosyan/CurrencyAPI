@@ -1,4 +1,5 @@
-﻿using CurrencyAPI.Models;
+﻿using CurrencyAPI.Entities;
+using CurrencyAPI.Models;
 
 namespace CurrencyAPI.Data
 {
@@ -6,6 +7,6 @@ namespace CurrencyAPI.Data
     {
         Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken);
         Task AssignAsync(string currency, decimal value, CancellationToken cancellationToken);
-        Task<CustomCurrencyResult> GetAsync(string currency, CancellationToken cancellationToken);
+        Task<CurrencyRate?> GetAsync(string currency, CancellationToken cancellationToken);
     }
 }

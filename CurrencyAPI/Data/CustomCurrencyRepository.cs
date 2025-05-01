@@ -2,6 +2,8 @@
 using CurrencyAPI.Entities;
 using CurrencyAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
+using System.Threading;
 
 namespace CurrencyAPI.Data
 {
@@ -14,29 +16,30 @@ namespace CurrencyAPI.Data
             _context = context;
         }
 
+        private Task UpdateRates(string currency, decimal value, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            _context.CurrencyRates.Add(new CurrencyRate
+            {
+                Currency = currency,
+                Value = value,
+                LastUpdated = DateTime.UtcNow
+            });
+
+            return Task.CompletedTask;
+        }
+
         public async Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             foreach (var rate in rates)
             {
-                var currency = rate.Key.ToUpper();
+                var currency = rate.Key;
                 var value = rate.Value;
 
-                var existing = await _context.CurrencyRates.FirstOrDefaultAsync(c => c.Currency == currency, cancellationToken);
-
-                if (existing != null)
-                {
-                    existing.Value = value;
-                }
-                else
-                {
-                    _context.CurrencyRates.Add(new CurrencyRate
-                    {
-                        Currency = currency,
-                        Value = value,
-                    });
-                }
+                await UpdateRates(currency, value, cancellationToken);
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -45,47 +48,24 @@ namespace CurrencyAPI.Data
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            currency = currency.ToUpper();
+            await UpdateRates(currency, value, cancellationToken);
 
-            var existing = await _context.CurrencyRates.FirstOrDefaultAsync(c => c.Currency == currency, cancellationToken);
-
-            if (existing != null)
-            {
-                existing.Value = value;
-            }
-            else
-            {
-                _context.CurrencyRates.Add(new CurrencyRate
-                {
-                    Currency = currency,
-                    Value = value,
-                });
-            }
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<CustomCurrencyResult> GetAsync(string currency, CancellationToken cancellationToken)
+        public async Task<CurrencyRate?> GetAsync(string currency, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             currency = currency.ToUpper();
 
-            var rate = await _context.CurrencyRates.FirstOrDefaultAsync(c => c.Currency == currency, cancellationToken);
+            var rate = await _context.CurrencyRates
+                .AsNoTracking()
+                .Where(c => c.Currency == currency)
+                .OrderByDescending(c => c.LastUpdated)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (rate != null)
-            {
-                return new CustomCurrencyResult
-                {
-                    Found = true,
-                    Value = rate.Value
-                };
-            }
-
-            return new CustomCurrencyResult
-            {
-                Found = false,
-                Value = 0m
-            };
+            return rate;
         }
     }
 }
