@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using CurrencyAPI.Models;
 using CurrencyAPI.Services;
+using CurrencyAPI.Helpers;
 
 namespace CurrencyAPI.Controllers
 {
@@ -18,12 +19,20 @@ namespace CurrencyAPI.Controllers
         {
             _currencyService = currencyService;
         }
+        private bool IsValidCurrencyCode(string code)
+        {
+            return !string.IsNullOrWhiteSpace(code)
+                   && code.Length == 3
+                   && code.All(char.IsLetter);
+        }
 
-   
         [HttpPost("assign")]
         public async Task<IActionResult> AssignCurrency([FromBody] AssignCurrencyRequest request, CancellationToken cancellationToken)
         {
-            await _currencyService.AssignCurrencyAsync(request.Currency, request.Value, cancellationToken);
+            var result = await _currencyService.AssignCurrencyAsync(request.Currency, request.Value, cancellationToken);
+
+            if (!result.Success)
+                return StatusCode(500, result.Error);
 
             return Ok();
         }
@@ -31,12 +40,17 @@ namespace CurrencyAPI.Controllers
         [HttpGet("rate/{currency}")]
         public async Task<IActionResult> GetRate(string currency, CancellationToken cancellationToken)
         {
+            if (!IsValidCurrencyCode(currency))
+            {
+                return BadRequest(new { Error = "Currency code must be exactly 3 alphabetic characters." });
+            }
+
             var result = await _currencyService.GetCurrencyAsync(currency, cancellationToken);
 
-            if (!result.Found)
-                return NotFound(new { Error = $"Currency '{currency.ToUpper()}' not found." });
+            if (!result.Success)
+                return NotFound(new { Error = result.Error });
 
-            return Ok(new { Currency = currency.ToUpper(), Value = result.Value });
+            return Ok(new { Currency = currency.ToUpper(), Value = result.Result.Value });
         }
 
         [HttpPost("fetch-and-save")]
@@ -50,6 +64,27 @@ namespace CurrencyAPI.Controllers
             }
 
             return Ok(new { Message = "Rates successfully fetched and saved." });
+        }
+
+        [HttpGet("calculate")]
+        public async Task<IActionResult> Calculate([FromQuery] string from, [FromQuery] string to, [FromQuery] decimal amount, CancellationToken cancellationToken)
+        {
+            if (!IsValidCurrencyCode(from) || !IsValidCurrencyCode(to))
+            {
+                return BadRequest(new { Error = "Both 'from' and 'to' currencies must be exactly 3 alphabetic characters." });
+            }
+
+            if (amount <= 0)
+            {
+                return BadRequest(new { Error = "'amount' must be a positive number." });
+            }
+
+            var result = await _currencyService.CalculateAsync(from, to, amount, cancellationToken);
+
+            if (!result.Success)
+                return NotFound(new { Error = result.Error });
+
+            return Ok(new { From = from.ToUpper(), To = to.ToUpper(), Amount = amount, Result = result.Result.Value });
         }
     }
 

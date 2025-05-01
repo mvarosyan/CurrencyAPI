@@ -25,18 +25,18 @@ namespace CurrencyAPI.Workers
 
                 ICurrencyService currencyService = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
 
-                var result = await currencyService.FetchAndSaveRatesAsync();
+                var result = await currencyService.FetchAndSaveRatesAsync(stoppingToken);
 
                 if (result.Success)
                 {
-                    _logger.LogInformation("Rates have been fetched ans saved");
+                    _logger.LogInformation("Rates have been fetched and saved");
                 }
                 else
                 {
                     _logger.LogWarning("Currency rate fetch failed: {Error}", result.Error);
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
             }
         }
     }
