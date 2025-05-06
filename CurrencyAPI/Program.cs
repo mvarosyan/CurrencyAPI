@@ -2,6 +2,7 @@ using CurrencyAPI.Configuration;
 using CurrencyAPI.Data;
 using CurrencyAPI.Services;
 using CurrencyAPI.Workers;
+using CurrencyAPI.Handlers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+
+builder.Services.AddExceptionHandler<ExceptionHandler>();
 
 builder.Services.AddHttpClient();
 
@@ -35,6 +38,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler(o => { });
 
 app.UseHttpsRedirection();
 

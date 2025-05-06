@@ -2,6 +2,6 @@
 {
     public class RateResponse
     {
-        public Dictionary<string, decimal> Rates { get; set; }
+        public Dictionary<string, decimal>? Rates { get; set; }
     }
 }

@@ -67,5 +67,20 @@ namespace CurrencyAPI.Data
 
             return rate;
         }
+
+        public async Task<IEnumerable<CurrencyRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            currency = currency.ToUpper();
+
+            var rates = await _context.CurrencyRates
+                .AsNoTracking()
+                .Where(c => c.Currency == currency && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
+                .OrderByDescending(c => c.LastUpdated)
+                .ToListAsync(cancellationToken);
+
+            return rates;
+        }
     }
 }
