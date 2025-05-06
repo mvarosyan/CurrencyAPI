@@ -142,5 +142,38 @@ namespace CurrencyAPI.Services
             };
 
         }
+
+
+        public async Task<ServiceResult<IEnumerable<HistoricalRate>>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            fromDate = DateTime.SpecifyKind(fromDate, DateTimeKind.Utc);
+            toDate = DateTime.SpecifyKind(toDate, DateTimeKind.Utc);
+
+            var rates = await _customCurrencyRepository.GetHistoricalAsync(currency, fromDate, toDate, cancellationToken);
+
+            if (!rates.Any())
+            {
+                return new ServiceResult<IEnumerable<HistoricalRate>>
+                {
+                    Success = false,
+                    Error = "Historical rates not found.",
+                    Result = null
+                };
+            }
+
+            return new ServiceResult<IEnumerable<HistoricalRate>>
+            {
+                Success = true,
+                Error = null,
+                Result = rates.Select(r => new HistoricalRate
+                {
+                    Currency = r.Currency,
+                    Value = r.Value,
+                    LastUpdated = r.LastUpdated
+                })
+            };
+        }
     }
 }

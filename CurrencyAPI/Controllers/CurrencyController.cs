@@ -1,8 +1,5 @@
-﻿using CurrencyAPI.Configuration;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using CurrencyAPI.Models;
 using CurrencyAPI.Services;
 using CurrencyAPI.Helpers;
@@ -19,12 +16,6 @@ namespace CurrencyAPI.Controllers
         {
             _currencyService = currencyService;
         }
-        private bool IsValidCurrencyCode(string code)
-        {
-            return !string.IsNullOrWhiteSpace(code)
-                   && code.Length == 3
-                   && code.All(char.IsLetter);
-        }
 
         [HttpPost("assign")]
         public async Task<IActionResult> AssignCurrency([FromBody] AssignCurrencyRequest request, CancellationToken cancellationToken)
@@ -40,7 +31,7 @@ namespace CurrencyAPI.Controllers
         [HttpGet("rate/{currency}")]
         public async Task<IActionResult> GetRate(string currency, CancellationToken cancellationToken)
         {
-            if (!IsValidCurrencyCode(currency))
+            if (!currency.IsValid())
             {
                 return BadRequest(new { Error = "Currency code must be exactly 3 alphabetic characters." });
             }
@@ -69,7 +60,7 @@ namespace CurrencyAPI.Controllers
         [HttpGet("calculate")]
         public async Task<IActionResult> Calculate([FromQuery] string from, [FromQuery] string to, [FromQuery] decimal amount, CancellationToken cancellationToken)
         {
-            if (!IsValidCurrencyCode(from) || !IsValidCurrencyCode(to))
+            if (!from.IsValid() || !to.IsValid())
             {
                 return BadRequest(new { Error = "Both 'from' and 'to' currencies must be exactly 3 alphabetic characters." });
             }
@@ -86,6 +77,25 @@ namespace CurrencyAPI.Controllers
 
             return Ok(new { From = from.ToUpper(), To = to.ToUpper(), Amount = amount, Result = result.Result.Value });
         }
+
+        [HttpGet("historical")]
+        public async Task<IActionResult> GetHistorical([FromQuery] string currency, [FromQuery] DateTime fromDate, [FromQuery] DateTime toDate, CancellationToken cancellationToken)
+        {
+            if (!currency.IsValid())
+            {
+                return BadRequest(new { Error = "Currency code must be exactly 3 alphabetic characters." });
+            }
+
+            var result = await _currencyService.GetHistoricalAsync(currency, fromDate, toDate, cancellationToken);
+
+            if (!result.Success)
+                return NotFound(new { Error = result.Error });
+
+            return Ok(result.Result);
+        }
+
+
+
     }
 
 }

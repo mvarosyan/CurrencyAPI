@@ -2,7 +2,7 @@
 {
     public static class CurrencyValidator
     {
-        public static bool IsValid(string code)
+        public static bool IsValid(this string code)
         {
             return !string.IsNullOrWhiteSpace(code)
                    && code.Length == 3
