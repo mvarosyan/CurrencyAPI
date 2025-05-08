@@ -3,6 +3,7 @@ using CurrencyAPI.Data;
 using CurrencyAPI.Services;
 using CurrencyAPI.Workers;
 using CurrencyAPI.Handlers;
+using CurrencyAPI.Cache;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,10 @@ builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSet
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddSingleton<ICacheService, CacheService>();
 
 builder.Services.AddScoped<ICustomCurrencyRepository, CustomCurrencyRepository>();
 

@@ -1,10 +1,12 @@
 ﻿using CurrencyAPI.Configuration;
 using CurrencyAPI.Data;
 using CurrencyAPI.Models;
+using CurrencyAPI.Cache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using CurrencyAPI.Entities;
 
 namespace CurrencyAPI.Services
 {
@@ -80,7 +82,7 @@ namespace CurrencyAPI.Services
         public async Task<ServiceResult<CustomCurrencyResult>> AssignCurrencyAsync(string currency, decimal value, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             currency = currency.ToUpper();
 
             await _customCurrencyRepository.AssignAsync(currency, value, cancellationToken);
