@@ -20,23 +20,32 @@ namespace CurrencyAPI.Workers
 
             while (!stoppingToken.IsCancellationRequested)
             {
-
-                using IServiceScope scope = _serviceScopeFactory.CreateScope();
-
-                ICurrencyService currencyService = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
-
-                var result = await currencyService.FetchAndSaveRatesAsync(stoppingToken);
-
-                if (result.Success)
+                try
                 {
-                    _logger.LogInformation("Rates have been fetched and saved");
-                }
-                else
-                {
-                    _logger.LogWarning("Currency rate fetch failed: {Error}", result.Error);
-                }
+                    using IServiceScope scope = _serviceScopeFactory.CreateScope();
+                    ICurrencyService currencyService = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
 
-                await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+                    var result = await currencyService.FetchAndSaveRatesAsync(stoppingToken);
+
+                    if (result.Success)
+                    {
+                        _logger.LogInformation("Rates have been fetched and saved");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Currency rate fetch failed: {Error}", result.Error);
+                    }
+
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Background Worker stopping due to cancellation.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unhandled exception in background worker.");
+                }
             }
         }
     }

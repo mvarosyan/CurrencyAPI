@@ -1,6 +1,7 @@
 ﻿
 using CurrencyAPI.Entities;
 using CurrencyAPI.Models;
+using CurrencyAPI.Cache;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System.Threading;
@@ -10,13 +11,30 @@ namespace CurrencyAPI.Data
     public class CustomCurrencyRepository : ICustomCurrencyRepository
     {
         private readonly AppDbContext _context;
+        private readonly ICacheService _cacheService;
 
-        public CustomCurrencyRepository(AppDbContext context)
+        public CustomCurrencyRepository(AppDbContext context, ICacheService cacheService)
         {
             _context = context;
+            _cacheService = cacheService;
         }
 
-        private Task UpdateRates(string currency, decimal value, CancellationToken cancellationToken)
+        public async Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var newRates = rates.Select(rate => new CurrencyRate
+            {
+                Currency = rate.Key,
+                Value = rate.Value,
+                LastUpdated = DateTime.UtcNow
+            }).ToList();
+
+            _context.CurrencyRates.AddRange(newRates);
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        public async Task AssignAsync(string currency, decimal value, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -27,29 +45,6 @@ namespace CurrencyAPI.Data
                 LastUpdated = DateTime.UtcNow
             });
 
-            return Task.CompletedTask;
-        }
-
-        public async Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            foreach (var rate in rates)
-            {
-                var currency = rate.Key;
-                var value = rate.Value;
-
-                await UpdateRates(currency, value, cancellationToken);
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        public async Task AssignAsync(string currency, decimal value, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await UpdateRates(currency, value, cancellationToken);
-
             await _context.SaveChangesAsync(cancellationToken);
         }
 
@@ -59,11 +54,25 @@ namespace CurrencyAPI.Data
 
             currency = currency.ToUpper();
 
+            var cacheKey = $"currency_{currency}";
+
+            var cachedRate = _cacheService.Get<CurrencyRate>(cacheKey);
+
+            if (cachedRate != null)
+            {
+                return cachedRate;
+            }
+
             var rate = await _context.CurrencyRates
                 .AsNoTracking()
                 .Where(c => c.Currency == currency)
-                .OrderByDescending(c => c.LastUpdated)
+                .OrderByDescending(c => c.Id)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            if (rate != null)
+            {
+                _cacheService.Set(cacheKey, rate, TimeSpan.FromHours(1));
+            }
 
             return rate;
         }
@@ -74,11 +83,22 @@ namespace CurrencyAPI.Data
 
             currency = currency.ToUpper();
 
+            var cacheKey = $"historical_{currency}_{fromDate:yyyyMMddHHmmss}_{toDate:yyyyMMddHHmmss}";
+
+            var cachedRates = _cacheService.Get<IEnumerable<CurrencyRate>>(cacheKey);
+
+            if (cachedRates != null)
+            {
+                return cachedRates;
+            }
+
             var rates = await _context.CurrencyRates
                 .AsNoTracking()
                 .Where(c => c.Currency == currency && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
-                .OrderByDescending(c => c.LastUpdated)
+                .OrderByDescending(c => c.Id)
                 .ToListAsync(cancellationToken);
+
+            _cacheService.Set(cacheKey, rates, TimeSpan.FromHours(1));
 
             return rates;
         }
