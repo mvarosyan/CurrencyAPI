@@ -27,7 +27,7 @@ namespace CurrencyAPI.Workers
 
                     var result = await currencyService.FetchAndSaveRatesAsync(stoppingToken);
 
-                    if (result.Success)
+                    if (result.IsSuccess)
                     {
                         _logger.LogInformation("Rates have been fetched and saved");
                     }

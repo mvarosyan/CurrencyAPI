@@ -22,10 +22,10 @@ namespace CurrencyAPI.Controllers
         {
             var result = await _currencyService.AssignCurrencyAsync(request.Currency, request.Value, cancellationToken);
 
-            if (!result.Success)
-                return StatusCode(500, result.Error);
+            if (!result.IsSuccess)
+                return BadRequest(new { Error = result.Error });
 
-            return Ok();
+            return Created();
         }
 
         [HttpGet("rate/{currency}")]
@@ -38,10 +38,10 @@ namespace CurrencyAPI.Controllers
 
             var result = await _currencyService.GetCurrencyAsync(currency, cancellationToken);
 
-            if (!result.Success)
+            if (!result.IsSuccess)
                 return NotFound(new { Error = result.Error });
 
-            return Ok(new { Currency = currency.ToUpper(), Value = result.Result.Value });
+            return Ok(new { Currency = currency.ToUpper(), Value = result.Value.Value });
         }
 
         [HttpPost("fetch-and-save")]
@@ -49,7 +49,7 @@ namespace CurrencyAPI.Controllers
         {
             var result = await _currencyService.FetchAndSaveRatesAsync(cancellationToken);
 
-            if (!result.Success)
+            if (!result.IsSuccess)
             {
                 return StatusCode(500, result.Error);
             }
@@ -72,10 +72,10 @@ namespace CurrencyAPI.Controllers
 
             var result = await _currencyService.CalculateAsync(from, to, amount, cancellationToken);
 
-            if (!result.Success)
+            if (!result.IsSuccess)
                 return NotFound(new { Error = result.Error });
 
-            return Ok(new { From = from.ToUpper(), To = to.ToUpper(), Amount = amount, Result = result.Result.Value });
+            return Ok(new { From = from.ToUpper(), To = to.ToUpper(), Amount = amount, Result = result.Value.Value });
         }
 
         [HttpGet("historical")]
@@ -88,13 +88,27 @@ namespace CurrencyAPI.Controllers
 
             var result = await _currencyService.GetHistoricalAsync(currency, fromDate, toDate, cancellationToken);
 
-            if (!result.Success)
+            if (!result.IsSuccess)
                 return NotFound(new { Error = result.Error });
 
-            return Ok(result.Result);
+            return Ok(result.Value);
         }
 
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteCurrency([FromQuery] string currency, CancellationToken cancellationToken)
+        {
+            if (!currency.IsValid())
+            {
+                return BadRequest(new { Error = "Currency code must be exactly 3 alphabetic characters." });
+            }
 
+            var result = await _currencyService.DeleteCurrencyAsync(currency, cancellationToken);
+
+            if (!result.IsSuccess)
+                return NotFound(new { Error = result.Error });
+
+            return NoContent();
+        }
 
     }
 

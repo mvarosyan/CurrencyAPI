@@ -1,51 +1,80 @@
 ﻿
 using CurrencyAPI.Entities;
-using CurrencyAPI.Models;
-using CurrencyAPI.Cache;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json.Linq;
-using System.Threading;
 
 namespace CurrencyAPI.Data
 {
     public class CustomCurrencyRepository : ICustomCurrencyRepository
     {
         private readonly AppDbContext _context;
-        private readonly ICacheService _cacheService;
 
-        public CustomCurrencyRepository(AppDbContext context, ICacheService cacheService)
+        public CustomCurrencyRepository(AppDbContext context)
         {
             _context = context;
-            _cacheService = cacheService;
         }
 
         public async Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var newRates = rates.Select(rate => new CurrencyRate
+            if (!_context.Currencies.Any())
             {
-                Currency = rate.Key,
-                Value = rate.Value,
-                LastUpdated = DateTime.UtcNow
-            }).ToList();
+                var newCurrencies = rates.Keys.Select(code => new Currency
+                {
+                    Code = code,
+                    IsActive = true
+                }).ToList();
+
+                _context.Currencies.AddRange(newCurrencies);
+            }
+
+            var newRates = rates
+                .Select(rate =>
+                {
+                    var currency = _context.Currencies.FirstOrDefault(c => c.Code == rate.Key);
+                    if (currency != null)
+                    {
+                        return new CurrencyRate
+                        {
+                            CurrencyId = currency.Id,
+                            Value = rate.Value,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                    }
+
+                    return null!;
+                })
+                .Where(rate => rate != null)
+                .ToList();
 
             _context.CurrencyRates.AddRange(newRates);
 
             await _context.SaveChangesAsync(cancellationToken);
         }
-        public async Task AssignAsync(string currency, decimal value, CancellationToken cancellationToken)
+        public async Task<bool> AssignAsync(string currency, decimal value, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            _context.CurrencyRates.Add(new CurrencyRate
+            var currencyCode = await _context.Currencies
+                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
+
+            if (currencyCode == null)
             {
-                Currency = currency,
+                return false;
+            }
+
+            var newRate = new CurrencyRate
+            {
+                CurrencyId = currencyCode.Id,
                 Value = value,
                 LastUpdated = DateTime.UtcNow
-            });
+            };
+
+            _context.CurrencyRates.Add(newRate);
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            return true;
         }
 
         public async Task<CurrencyRate?> GetAsync(string currency, CancellationToken cancellationToken)
@@ -54,53 +83,62 @@ namespace CurrencyAPI.Data
 
             currency = currency.ToUpper();
 
-            var cacheKey = $"currency_{currency}";
+            var currencyCode = await _context.Currencies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
 
-            var cachedRate = _cacheService.Get<CurrencyRate>(cacheKey);
-
-            if (cachedRate != null)
+            if (currencyCode == null)
             {
-                return cachedRate;
+                return null;
             }
 
             var rate = await _context.CurrencyRates
                 .AsNoTracking()
-                .Where(c => c.Currency == currency)
+                .Where(c => c.CurrencyId == currencyCode.Id)
                 .OrderByDescending(c => c.Id)
                 .FirstOrDefaultAsync(cancellationToken);
-
-            if (rate != null)
-            {
-                _cacheService.Set(cacheKey, rate, TimeSpan.FromHours(1));
-            }
 
             return rate;
         }
 
         public async Task<IEnumerable<CurrencyRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             currency = currency.ToUpper();
 
-            var cacheKey = $"historical_{currency}_{fromDate:yyyyMMddHHmmss}_{toDate:yyyyMMddHHmmss}";
+            var currencyCode = await _context.Currencies
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
 
-            var cachedRates = _cacheService.Get<IEnumerable<CurrencyRate>>(cacheKey);
-
-            if (cachedRates != null)
-            {
-                return cachedRates;
-            }
 
             var rates = await _context.CurrencyRates
                 .AsNoTracking()
-                .Where(c => c.Currency == currency && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
+                .IgnoreQueryFilters()
+                .Include(r => r.Currency)
+                .Where(c => c.CurrencyId == currencyCode!.Id && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
                 .OrderByDescending(c => c.Id)
                 .ToListAsync(cancellationToken);
 
-            _cacheService.Set(cacheKey, rates, TimeSpan.FromHours(1));
-
             return rates;
+        }
+
+        public async Task<bool> DeleteCurrencyAsync(string currency, CancellationToken cancellationToken)
+        {
+            currency = currency.ToUpper();
+
+            var currencyCode = await _context.Currencies
+                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
+
+            if (currencyCode == null)
+            {
+                return false;
+            }
+
+            currencyCode.IsActive = false;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return true;
         }
     }
 }
