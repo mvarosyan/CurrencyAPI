@@ -13,7 +13,7 @@ namespace CurrencyAPI.Cache
 
         public T? Get<T>(string key)
         {
-            if (_memoryCache.TryGetValue(key, out T value))
+            if (_memoryCache.TryGetValue(key, out T? value))
             {
                 return value;
             }
