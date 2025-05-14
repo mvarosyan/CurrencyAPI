@@ -8,7 +8,7 @@ namespace CurrencyAPI.Data
         Task SaveRatesAsync(Dictionary<string, decimal> rates, CancellationToken cancellationToken);
         Task<bool> AssignAsync(string currency, decimal value, CancellationToken cancellationToken);
         Task<CurrencyRate?> GetAsync(string currency, CancellationToken cancellationToken);
-        Task<IEnumerable<CurrencyRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
+        Task<IEnumerable<HistoricalRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
         Task<bool> DeleteCurrencyAsync(string currency, CancellationToken cancellationToken);
     }
 }

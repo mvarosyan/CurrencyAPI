@@ -1,6 +1,8 @@
 ﻿
 using CurrencyAPI.Entities;
+using CurrencyAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CurrencyAPI.Data
 {
@@ -17,6 +19,8 @@ namespace CurrencyAPI.Data
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            List<Currency> currencies = new List<Currency>();
+
             if (!_context.Currencies.Any())
             {
                 var newCurrencies = rates.Keys.Select(code => new Currency
@@ -26,25 +30,21 @@ namespace CurrencyAPI.Data
                 }).ToList();
 
                 _context.Currencies.AddRange(newCurrencies);
+                await _context.SaveChangesAsync(cancellationToken);
             }
 
-            var newRates = rates
-                .Select(rate =>
-                {
-                    var currency = _context.Currencies.FirstOrDefault(c => c.Code == rate.Key);
-                    if (currency != null)
-                    {
-                        return new CurrencyRate
-                        {
-                            CurrencyId = currency.Id,
-                            Value = rate.Value,
-                            LastUpdated = DateTime.UtcNow
-                        };
-                    }
+            currencies = await _context.Currencies.ToListAsync(cancellationToken);
 
-                    return null!;
+            var newRates = currencies
+                .Select(cur =>
+                {
+                    return new CurrencyRate
+                    {
+                        CurrencyId = cur.Id,
+                        Value = rates[cur.Code],
+                        LastUpdated = DateTime.UtcNow
+                    };
                 })
-                .Where(rate => rate != null)
                 .ToList();
 
             _context.CurrencyRates.AddRange(newRates);
@@ -101,22 +101,21 @@ namespace CurrencyAPI.Data
             return rate;
         }
 
-        public async Task<IEnumerable<CurrencyRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+        public async Task<IEnumerable<HistoricalRate>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
         {
             currency = currency.ToUpper();
-
-            var currencyCode = await _context.Currencies
-                .AsNoTracking()
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
-
 
             var rates = await _context.CurrencyRates
                 .AsNoTracking()
                 .IgnoreQueryFilters()
-                .Include(r => r.Currency)
-                .Where(c => c.CurrencyId == currencyCode!.Id && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
+                .Where(c => c.Currency.Code == currency && c.LastUpdated >= fromDate && c.LastUpdated <= toDate)
                 .OrderByDescending(c => c.Id)
+                .Select(r => new HistoricalRate
+                {
+                    Currency = r.Currency.Code,
+                    Value = r.Value,
+                    LastUpdated = r.LastUpdated
+                })
                 .ToListAsync(cancellationToken);
 
             return rates;

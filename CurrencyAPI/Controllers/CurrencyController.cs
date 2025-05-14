@@ -79,11 +79,16 @@ namespace CurrencyAPI.Controllers
         }
 
         [HttpGet("historical")]
-        public async Task<IActionResult> GetHistorical([FromQuery] string currency, [FromQuery] DateTime fromDate, [FromQuery] DateTime toDate, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetHistorical([FromQuery] string currency, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken cancellationToken)
         {
             if (!currency.IsValid())
             {
                 return BadRequest(new { Error = "Currency code must be exactly 3 alphabetic characters." });
+            }
+
+            if (fromDate > toDate)
+            {
+                return BadRequest(new { Error = "fromDate must be earlier than toDate." });
             }
 
             var result = await _currencyService.GetHistoricalAsync(currency, fromDate, toDate, cancellationToken);
