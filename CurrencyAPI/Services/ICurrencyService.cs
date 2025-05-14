@@ -11,7 +11,7 @@ namespace CurrencyAPI.Services
         Task<ServiceResult<CustomCurrencyResult>> GetCurrencyAsync(string currency, CancellationToken cancellationToken);
 
         Task<ServiceResult<CustomCurrencyResult>> CalculateAsync(string from, string to, decimal amount, CancellationToken cancellationToken);
-        Task<ServiceResult<IEnumerable<HistoricalRate>>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken);
+        Task<ServiceResult<IEnumerable<HistoricalRate>>> GetHistoricalAsync(string currency, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken);
         Task<ServiceResult> DeleteCurrencyAsync(string currency, CancellationToken cancellationToken);
     }
 }

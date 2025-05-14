@@ -128,26 +128,24 @@ namespace CurrencyAPI.Services
         }
 
 
-        public async Task<ServiceResult<IEnumerable<HistoricalRate>>> GetHistoricalAsync(string currency, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+        public async Task<ServiceResult<IEnumerable<HistoricalRate>>> GetHistoricalAsync(string currency, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            fromDate = DateTime.SpecifyKind(fromDate, DateTimeKind.Utc);
-            toDate = DateTime.SpecifyKind(toDate, DateTimeKind.Utc);
+            DateTime defaultFrom = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            DateTime defaultTo = DateTime.UtcNow;
 
-            var rates = await _customCurrencyRepository.GetHistoricalAsync(currency, fromDate, toDate, cancellationToken);
+            var from = DateTime.SpecifyKind(fromDate ?? defaultFrom, DateTimeKind.Utc);
+            var to = DateTime.SpecifyKind(toDate ?? defaultTo, DateTimeKind.Utc);
+
+            var rates = await _customCurrencyRepository.GetHistoricalAsync(currency, from, to, cancellationToken);
 
             if (!rates.Any())
             {
                 return ServiceResult<IEnumerable<HistoricalRate>>.Failure("No historical rates found for the specified currency and date range.");
             }
 
-            return ServiceResult<IEnumerable<HistoricalRate>>.Success(rates.Select(r => new HistoricalRate
-            {
-                Currency = r.Currency.Code,
-                Value = r.Value,
-                LastUpdated = r.LastUpdated
-            }));
+            return ServiceResult<IEnumerable<HistoricalRate>>.Success(rates);
         }
 
         public async Task<ServiceResult> DeleteCurrencyAsync(string currency, CancellationToken cancellationToken)
