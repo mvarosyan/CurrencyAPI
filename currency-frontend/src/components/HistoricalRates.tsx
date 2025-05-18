@@ -144,7 +144,7 @@ const HistoricalRatesContent = () => {
     validateInputs();
   }, [currency, fromDate, toDate]);
 
-  const { data: historicalData, isLoading, error: queryError } = useQuery<HistoricalDataPoint[]>(
+  const { data: historicalData, isLoading, error: queryError } = useQuery<HistoricalDataPoint[], Error>(
     ['historical', currency, fromDate, toDate],
     async () => {
       console.log('Fetching historical data with params:', { currency, fromDate, toDate });
@@ -152,7 +152,7 @@ const HistoricalRatesContent = () => {
       return data.map(item => ({
         date: item.lastUpdated,
         value: item.value
-      }));
+      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     },
     {
       enabled: isValid,
@@ -215,9 +215,7 @@ const HistoricalRatesContent = () => {
 
           {queryError && (
             <Alert severity="error">
-              {(queryError as any)?.response?.data?.error || 
-               (queryError as any)?.message || 
-               'Failed to fetch historical rates. Please try again.'}
+              {queryError?.message || 'Failed to fetch historical rates. Please try again.'}
             </Alert>
           )}
 
@@ -237,8 +235,9 @@ const HistoricalRatesContent = () => {
                     angle={-45}
                     textAnchor="end"
                     height={70}
-                    interval="preserveStartEnd"
-                    minTickGap={50}
+                    interval="preserveEnd"
+                    minTickGap={20}
+                    padding={{ left: 20, right: 20 }}
                   />
                   <YAxis 
                     tickFormatter={(value) => value.toFixed(4)}
