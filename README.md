@@ -125,11 +125,32 @@ The application uses two main tables:
 - `Currencies`: Stores currency codes and their active status
 - `CurrencyRates`: Stores historical exchange rates with timestamps
 
-## 🔒 Environment Variables
+## 🔒 Configuration
 
-Required environment variables:
-- `ConnectionStrings__DefaultConnection`: PostgreSQL connection string
-- `ApiSettings__CurrencyApiKey`: OpenExchangeRates API key
+The application can be configured using either appsettings.json or environment variables.
+
+### Using appsettings.json:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=mydb;Username=your_username;Password=your_password"
+  },
+  "ApiSettings": {
+    "CurrencyApiKey": "your_api_key"
+  }
+}
+```
+
+### Using Environment Variables:
+```bash
+# Windows PowerShell
+$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=mydb;Username=your_username;Password=your_password"
+$env:ApiSettings__CurrencyApiKey="your_api_key"
+
+# Linux/macOS
+export ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=mydb;Username=your_username;Password=your_password"
+export ApiSettings__CurrencyApiKey="your_api_key"
+```
 
 ## 🤝 Contributing
 
