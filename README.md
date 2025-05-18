@@ -83,7 +83,7 @@ npm install
 cd CurrencyAPI
 dotnet run
 ```
-The API will be available at `https://localhost:7001`
+The API will be available at `https://localhost:7072`
 
 ### Frontend
 ```bash
@@ -142,10 +142,3 @@ Required environment variables:
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## ✨ Acknowledgments
-
-- Built with modern .NET and React best practices
-- Implements clean architecture principles
-- Uses industry-standard security practices
-- Integrates with OpenExchangeRates API for real-time data 
