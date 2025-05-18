@@ -12,6 +12,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 
 builder.Services.AddHttpClient();
@@ -44,9 +55,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS must be before UseHttpsRedirection and other middleware
+app.UseCors();
+
 app.UseExceptionHandler(o => { });
 
-app.UseHttpsRedirection();
+// Comment out HTTPS redirection during development to avoid potential issues
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
