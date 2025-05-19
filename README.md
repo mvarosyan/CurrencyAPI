@@ -1,6 +1,6 @@
 # Currency API
 
-A modern, full-stack currency exchange rate tracking application built with .NET 7 and React. This project provides real-time currency rate monitoring, historical data tracking, and currency management capabilities.
+A modern, full-stack currency exchange rate tracking application built with .NET 8 and React. This project provides real-time currency rate monitoring, historical data tracking, and currency management capabilities.
 
 ## 🚀 Features
 
@@ -8,16 +8,16 @@ A modern, full-stack currency exchange rate tracking application built with .NET
 - Historical rate data visualization
 - Currency management (add, update, delete)
 - RESTful API endpoints
-- Modern React frontend with real-time updates
+- React frontend with real-time updates
 - PostgreSQL database with Entity Framework Core
 - Background workers for automatic rate updates
 - In-memory caching for improved performance
-- OpenExchangeRates API integration
+- External API integration
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- .NET 7
+- .NET 8
 - Entity Framework Core 9.0
 - PostgreSQL
 - ASP.NET Core Web API
@@ -28,11 +28,10 @@ A modern, full-stack currency exchange rate tracking application built with .NET
 - React
 - TypeScript
 - Vite
-- Modern UI components
 
 ## 📋 Prerequisites
 
-- .NET 7 SDK
+- .NET 8 SDK
 - Node.js (v14 or later)
 - PostgreSQL 14 or later
 - Visual Studio 2022 or VS Code
@@ -94,10 +93,12 @@ The frontend will be available at `http://localhost:5173`
 
 ## 🔌 API Endpoints
 
-- `GET /api/currency/{code}` - Get current rate for a specific currency
-- `GET /api/currency/historical/{code}` - Get historical rates for a currency
-- `POST /api/currency` - Add or update a currency rate
-- `DELETE /api/currency/{code}` - Deactivate a currency
+- `GET /api/currency/rate/{currency}` - Get current rate for a specific currency
+- `GET /api/currency/historical` - Get historical rates for a currency
+- `GET /api/currency/calculate` - Convert a certain amount of currency into another
+- `POST /api/currency/assign` - Add a currency rate
+- `POST /api/currency/fetch-and-save` - Trigger the fetch and save logic
+- `DELETE /api/currency/delete` - Deactivate a currency
 
 ## 📦 Project Structure
 
@@ -115,15 +116,14 @@ CurrencyAPI/
 currency-frontend/
 ├── src/
 │   ├── components/    # React components
-│   ├── services/     # API integration
-│   └── hooks/        # Custom React hooks
+│   └── api/     # API integration
 ```
 
 ## 🗄️ Database Schema
 
 The application uses two main tables:
 - `Currencies`: Stores currency codes and their active status
-- `CurrencyRates`: Stores historical exchange rates with timestamps
+- `CurrencyRates`: Stores exchange rates with timestamps
 
 ## 🔒 Configuration
 
