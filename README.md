@@ -1,10 +1,10 @@
 # Currency API
 
-A modern, full-stack currency exchange rate tracking application built with .NET 8 and React. This project provides real-time currency rate monitoring, historical data tracking, and currency management capabilities.
+A currency exchange rate tracking application built with .NET 8 and React. This project provides currency rate monitoring, historical data tracking, and currency management capabilities.
 
 ## 🚀 Features
 
-- Real-time currency exchange rate tracking
+- Currency exchange rate tracking
 - Historical rate data visualization
 - Currency management (add, update, delete)
 - RESTful API endpoints
