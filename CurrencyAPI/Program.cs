@@ -55,13 +55,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS must be before UseHttpsRedirection and other middleware
+
 app.UseCors();
 
 app.UseExceptionHandler(o => { });
 
-// Comment out HTTPS redirection during development to avoid potential issues
-// app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
