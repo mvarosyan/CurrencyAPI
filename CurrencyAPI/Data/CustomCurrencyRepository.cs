@@ -83,20 +83,16 @@ namespace CurrencyAPI.Data
 
             currency = currency.ToUpper();
 
-            var currencyCode = await _context.Currencies
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Code == currency, cancellationToken);
+            var rate = await _context.CurrencyRates
+              .AsNoTracking()
+              .Where(c => c.Currency.Code == currency)
+              .OrderByDescending(c => c.Id)
+              .FirstOrDefaultAsync(cancellationToken);
 
-            if (currencyCode == null)
+            if (rate == null)
             {
                 return null;
             }
-
-            var rate = await _context.CurrencyRates
-                .AsNoTracking()
-                .Where(c => c.CurrencyId == currencyCode.Id)
-                .OrderByDescending(c => c.Id)
-                .FirstOrDefaultAsync(cancellationToken);
 
             return rate;
         }
